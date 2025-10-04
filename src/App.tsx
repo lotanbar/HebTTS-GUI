@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { ConfigProvider, theme, Input, Button, Card, Switch, Slider, Select, Typography, Space, Row, Col } from 'antd'
 import { SoundOutlined, SettingOutlined } from '@ant-design/icons'
+import { useTTSForm } from './contexts/TTSFormContext'
 import './App.css'
 
 const { TextArea } = Input
@@ -8,11 +8,15 @@ const { Title, Text } = Typography
 const { Option } = Select
 
 function App() {
-  const [text, setText] = useState('')
-  const [speaker, setSpeaker] = useState('osim')
-  const [useMbd, setUseMbd] = useState(true)
-  const [topK, setTopK] = useState(15)
-  const [temperature, setTemperature] = useState(0.6)
+  const { 
+    state: { text, speaker, useMbd, topK, temperature },
+    setText,
+    setSpeaker,
+    setUseMbd,
+    setTopK,
+    setTemperature,
+    getFormParams
+  } = useTTSForm()
 
   const speakers = [
     { value: 'osim', label: 'Osim' },
@@ -21,13 +25,7 @@ function App() {
   ]
 
   const handleGenerate = () => {
-    console.log('Generating with params:', {
-      text,
-      speaker,
-      use_mbd: useMbd,
-      top_k: topK,
-      temperature,
-    })
+    console.log('Generating with params:', getFormParams())
     // TODO: Implement API call to hebtts-backend
   }
 

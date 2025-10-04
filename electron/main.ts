@@ -1,7 +1,8 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import fs from 'node:fs'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -63,6 +64,39 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
+})
+
+const STORE_PATH = path.join(app.getPath('userData'), 'store.json')
+
+function getStore(): Record<string, any> {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const data = fs.readFileSync(STORE_PATH, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.warn('Failed to read store:', error)
+  }
+  return {}
+}
+
+function setStore(data: Record<string, any>): void {
+  try {
+    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2))
+  } catch (error) {
+    console.warn('Failed to write store:', error)
+  }
+}
+
+ipcMain.handle('store-get', (_, key: string) => {
+  const store = getStore()
+  return store[key]
+})
+
+ipcMain.handle('store-set', (_, key: string, value: any) => {
+  const store = getStore()
+  store[key] = value
+  setStore(store)
 })
 
 app.whenReady().then(createWindow)
