@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
-import type { FileContextType, FileProviderProps, FileItem, FileStatus } from '../types/file'
+import type { FileContextType, FileProviderProps, FileItem } from '../types/file'
+import { FileStatus } from '../types/file'
 import { validateHebrewText, readFileAsText } from '../utils/hebrewValidation'
 import { synthesizeSpeech, getJobStatus } from '../services/runpodAPI'
 import { useTTSForm } from './TTSFormContext'
@@ -182,7 +183,7 @@ export function FileProvider({ children }: FileProviderProps) {
     toggleFileSelection,
     selectAllFiles,
     clearSelection,
-    setSelectionMode,
+    setSelectionMode: setIsSelectionMode,
     setShowFileList,
     processFiles,
     downloadFile,

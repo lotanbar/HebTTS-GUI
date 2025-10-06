@@ -1,20 +1,25 @@
 import { ConfigProvider, theme } from 'antd'
 import { useState, useEffect } from 'react'
 import { useTTSForm } from './contexts/TTSFormContext'
+import { useFiles } from './contexts/FileContext'
 import { TextInputCard } from './components/TextInputCard'
 import { VoiceParametersCard } from './components/VoiceParametersCard'
 import { GenerationCard } from './components/GenerationCard'
 import { AudioPlayerCard } from './components/AudioPlayerCard'
 import { Header } from './components/Header'
 import { InfoPane } from './components/InfoPane'
+import { FileListPane } from './components/FileListPane'
 import { useAudioGeneration } from './hooks/useAudioGeneration'
 import './App.css'
 
 function App() {
   const ttsForm = useTTSForm()
+  const { showFileList, setShowFileList } = useFiles()
   const { isGenerating, audioUrl, handleGenerate, handleStop } = useAudioGeneration()
   const [showInfoPane, setShowInfoPane] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+
+  const showSidePane = showInfoPane || (showFileList && !isMobile)
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -42,7 +47,7 @@ function App() {
           <div className={`${
             isMobile 
               ? showInfoPane ? 'hidden' : 'w-full' 
-              : showInfoPane ? 'w-1/2 pr-3' : 'w-full max-w-4xl mx-auto'
+              : (showInfoPane || (showFileList && !isMobile)) ? 'w-1/2 pr-3' : 'w-full max-w-4xl mx-auto'
           } flex flex-col`}>
             <Header onInfoClick={() => setShowInfoPane(!showInfoPane)} />
             
@@ -74,17 +79,30 @@ function App() {
                 {audioUrl && (
                   <AudioPlayerCard audioUrl={audioUrl} />
                 )}
+
+                {/* Mobile File List Below Main Content */}
+                {isMobile && showFileList && (
+                  <FileListPane 
+                    onClose={() => setShowFileList(false)} 
+                    isMobile={true}
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          {/* Info Pane */}
-          {showInfoPane && (
-            <div className={`${
-              isMobile ? 'w-full' : 'w-1/2 pl-3'
-            } overflow-hidden`}>
+          {/* Side Pane (Desktop Only) */}
+          {showSidePane && (
+            <div className="w-1/2 pl-3 overflow-hidden">
               <div className="h-full">
-                <InfoPane onClose={() => setShowInfoPane(false)} />
+                {showFileList && !isMobile ? (
+                  <FileListPane 
+                    onClose={() => setShowFileList(false)} 
+                    isMobile={false}
+                  />
+                ) : showInfoPane ? (
+                  <InfoPane onClose={() => setShowInfoPane(false)} />
+                ) : null}
               </div>
             </div>
           )}

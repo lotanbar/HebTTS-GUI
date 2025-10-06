@@ -1,5 +1,5 @@
 import { Card, Input, Typography, Button } from 'antd'
-import { PaperClipIcon } from '@heroicons/react/24/outline'
+import { PaperClipOutlined } from '@ant-design/icons'
 import { useFiles } from '../contexts/FileContext'
 
 const { TextArea } = Input
@@ -38,7 +38,7 @@ export function TextInputCard({ text, setText }: TextInputCardProps) {
           />
           <Button
             type="default"
-            icon={<PaperClipIcon className="w-4 h-4" />}
+            icon={<PaperClipOutlined />}
             onClick={() => document.getElementById('file-input')?.click()}
             className="flex items-center gap-1"
           >

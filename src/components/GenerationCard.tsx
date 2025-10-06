@@ -1,5 +1,6 @@
 import { Card, Button, Typography, Space } from 'antd'
-import { SoundOutlined, LoadingOutlined, StopOutlined } from '@ant-design/icons'
+import { SoundOutlined, LoadingOutlined, StopOutlined, FileTextOutlined } from '@ant-design/icons'
+import { useFiles } from '../contexts/FileContext'
 
 const { Text } = Typography
 
@@ -11,9 +12,25 @@ interface GenerationCardProps {
 }
 
 export function GenerationCard({ text, isGenerating, onGenerate, onStop }: GenerationCardProps) {
+  const { files, showFileList, setShowFileList } = useFiles()
+  
   return (
     <Card className="bg-gray-800 border-gray-700">
       <div className="text-center">
+        <div className="flex justify-between items-center mb-4">
+          <div></div>
+          {files.length > 0 && (
+            <Button
+              type="link"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => setShowFileList(!showFileList)}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              {showFileList ? 'Hide' : 'Show'} Files ({files.length})
+            </Button>
+          )}
+        </div>
         <Space size="middle">
           <Button
             type="primary"

@@ -7,11 +7,11 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <FileProvider>
-      <TTSFormProvider>
+    <TTSFormProvider>
+      <FileProvider>
         <App />
-      </TTSFormProvider>
-    </FileProvider>
+      </FileProvider>
+    </TTSFormProvider>
   </React.StrictMode>,
 )
 

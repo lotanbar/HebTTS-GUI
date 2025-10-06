@@ -1,5 +1,5 @@
 import { Card, Typography, Button, Collapse, Checkbox, Progress } from 'antd'
-import { ArrowLeftOutlined, FileTextOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CloseOutlined, FileTextOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, LoadingOutlined, CaretRightOutlined } from '@ant-design/icons'
 import { useFiles } from '../contexts/FileContext'
 import { FileStatus } from '../types/file'
 
@@ -8,6 +8,7 @@ const { Panel } = Collapse
 
 interface FileListPaneProps {
   onClose: () => void
+  isMobile: boolean
 }
 
 const getStatusIcon = (status: FileStatus) => {
@@ -44,7 +45,7 @@ const getStatusText = (status: FileStatus) => {
   }
 }
 
-export function FileListPane({ onClose }: FileListPaneProps) {
+export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
   const { files, isSelectionMode, toggleFileSelection, removeFile, downloadFile } = useFiles()
 
   const successfulFiles = files.filter(f => f.status === FileStatus.SUCCESS)
@@ -55,7 +56,7 @@ export function FileListPane({ onClose }: FileListPaneProps) {
         <div className="flex items-center">
           <Button
             type="text"
-            icon={<ArrowLeftOutlined />}
+            icon={isMobile ? <CloseOutlined /> : <ArrowLeftOutlined />}
             onClick={onClose}
             className="text-white hover:text-blue-400 mr-3"
             size="large"
@@ -76,7 +77,7 @@ export function FileListPane({ onClose }: FileListPaneProps) {
         )}
       </div>
 
-      <div className="space-y-3 text-white flex-1 overflow-y-auto pr-2">
+      <div className="space-y-2 text-white flex-1 overflow-y-auto pr-2">
         {files.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             <FileTextOutlined className="text-4xl mb-3" />
@@ -87,10 +88,10 @@ export function FileListPane({ onClose }: FileListPaneProps) {
             <Card
               key={file.id}
               size="small"
-              className="bg-gray-700 border-gray-600"
-              bodyStyle={{ padding: '12px' }}
+              className="bg-gray-700 border-gray-600 hover:border-gray-500 transition-colors"
+              bodyStyle={{ padding: '16px' }}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {isSelectionMode && file.status === FileStatus.READY && (
                     <Checkbox
@@ -98,17 +99,21 @@ export function FileListPane({ onClose }: FileListPaneProps) {
                       onChange={() => toggleFileSelection(file.id)}
                     />
                   )}
-                  <div className="flex items-center space-x-2 flex-1 min-w-0">
-                    {getStatusIcon(file.status)}
-                    <Text className="text-white truncate text-sm" title={file.name}>
-                      {file.name}
-                    </Text>
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="text-lg">
+                      {getStatusIcon(file.status)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Text className="text-white text-sm font-medium truncate block" title={file.name}>
+                        {file.name}
+                      </Text>
+                      <Text className="text-xs text-gray-400">
+                        {getStatusText(file.status)}
+                      </Text>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Text className="text-xs text-gray-400">
-                    {getStatusText(file.status)}
-                  </Text>
                   {file.status === FileStatus.SUCCESS && (
                     <Button
                       type="text"
@@ -122,7 +127,7 @@ export function FileListPane({ onClose }: FileListPaneProps) {
                     type="text"
                     size="small"
                     onClick={() => removeFile(file.id)}
-                    className="text-red-400 hover:text-red-300"
+                    className="text-red-400 hover:text-red-300 text-lg font-bold"
                   >
                     ×
                   </Button>
@@ -130,61 +135,84 @@ export function FileListPane({ onClose }: FileListPaneProps) {
               </div>
 
               {file.status === FileStatus.PROCESSING && (
-                <Progress
-                  percent={75}
-                  size="small"
-                  status="active"
-                  showInfo={false}
-                  className="mb-2"
-                />
+                <div className="mt-3">
+                  <Progress
+                    percent={75}
+                    size="small"
+                    status="active"
+                    showInfo={false}
+                  />
+                </div>
               )}
 
-              {(file.error || file.status === FileStatus.SUCCESS) && (
-                <Collapse
-                  ghost
-                  size="small"
-                  className="mt-2"
-                  expandIconPosition="end"
+              <Collapse
+                ghost
+                size="small"
+                className="mt-3"
+                expandIcon={({ isActive }) => (
+                  <CaretRightOutlined 
+                    rotate={isActive ? 90 : 0} 
+                    className="text-gray-400"
+                  />
+                )}
+              >
+                <Panel
+                  header={
+                    <Text className="text-xs text-gray-400">
+                      {file.error ? 'Error Details' : 
+                       file.status === FileStatus.SUCCESS ? 'Audio Preview' :
+                       file.status === FileStatus.LOADING ? 'Loading...' :
+                       file.status === FileStatus.PROCESSING ? 'Processing...' :
+                       'Details'}
+                    </Text>
+                  }
+                  key="1"
+                  className="text-xs"
                 >
-                  <Panel
-                    header={
-                      <Text className="text-xs text-gray-400">
-                        {file.error ? 'View Error' : 'View Details'}
-                      </Text>
-                    }
-                    key="1"
-                    className="text-xs"
-                  >
-                    {file.error && (
-                      <Text className="text-red-300 text-xs">
-                        {file.error}
-                      </Text>
-                    )}
-                    {file.status === FileStatus.SUCCESS && file.audioUrl && (
-                      <div className="space-y-2">
-                        <audio
-                          controls
-                          className="w-full h-8"
-                          src={file.audioUrl}
+                  {file.error && (
+                    <Text className="text-red-300 text-xs">
+                      {file.error}
+                    </Text>
+                  )}
+                  {file.status === FileStatus.SUCCESS && file.audioUrl && (
+                    <div className="space-y-2">
+                      <audio
+                        controls
+                        className="w-full h-8"
+                        src={file.audioUrl}
+                      >
+                        Your browser does not support the audio element.
+                      </audio>
+                      <div className="flex justify-end">
+                        <Button
+                          type="link"
+                          size="small"
+                          icon={<DownloadOutlined />}
+                          onClick={() => downloadFile(file.id)}
+                          className="text-blue-400 hover:text-blue-300 text-xs p-0"
                         >
-                          Your browser does not support the audio element.
-                        </audio>
-                        <div className="flex justify-end">
-                          <Button
-                            type="link"
-                            size="small"
-                            icon={<DownloadOutlined />}
-                            onClick={() => downloadFile(file.id)}
-                            className="text-blue-400 hover:text-blue-300 text-xs p-0"
-                          >
-                            Download
-                          </Button>
-                        </div>
+                          Download
+                        </Button>
                       </div>
-                    )}
-                  </Panel>
-                </Collapse>
-              )}
+                    </div>
+                  )}
+                  {file.status === FileStatus.READY && (
+                    <Text className="text-green-300 text-xs">
+                      File is ready for processing
+                    </Text>
+                  )}
+                  {file.status === FileStatus.LOADING && (
+                    <Text className="text-blue-300 text-xs">
+                      Reading and validating file content...
+                    </Text>
+                  )}
+                  {file.status === FileStatus.PROCESSING && (
+                    <Text className="text-yellow-300 text-xs">
+                      Generating speech audio...
+                    </Text>
+                  )}
+                </Panel>
+              </Collapse>
             </Card>
           ))
         )}
