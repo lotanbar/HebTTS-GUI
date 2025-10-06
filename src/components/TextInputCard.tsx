@@ -10,7 +10,7 @@ interface TextInputCardProps {
 
 export function TextInputCard({ text, setText }: TextInputCardProps) {
   return (
-    <Card className="mb-6 bg-gray-800 border-gray-700">
+    <Card className="bg-gray-800 border-gray-700">
       <Title level={3} className="text-white mb-4">
         Text Input
       </Title>

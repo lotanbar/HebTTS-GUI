@@ -1,5 +1,6 @@
 import { Card, Select, Switch, Slider, Typography, Space, Row, Col } from 'antd'
 import { SettingOutlined } from '@ant-design/icons'
+import { RestoreDefaultsButton } from './RestoreDefaultsButton'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -32,11 +33,14 @@ export function VoiceParametersCard({
   setTemperature
 }: VoiceParametersCardProps) {
   return (
-    <Card className="mb-6 bg-gray-800 border-gray-700">
-      <Title level={3} className="text-white mb-4">
-        <SettingOutlined className="mr-2" />
-        Voice Parameters
-      </Title>
+    <Card className="bg-gray-800 border-gray-700">
+      <div className="flex justify-between items-start mb-4">
+        <Title level={3} className="text-white mb-0">
+          <SettingOutlined className="mr-2" />
+          Voice Parameters
+        </Title>
+        <RestoreDefaultsButton />
+      </div>
       
       <Row gutter={[24, 24]}>
         <Col xs={24} sm={12} md={6}>

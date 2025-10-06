@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { message } from 'antd'
-import { synthesizeSpeech } from '../services/runpodAPI'
+import { synthesizeSpeech, cancelJob } from '../services/runpodAPI'
 import { pollJobStatus } from '../services/jobPoller'
 import { base64ToBlob } from '../utils/audio'
 
@@ -15,6 +15,8 @@ interface GenerateParams {
 export function useAudioGeneration() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null)
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null)
 
   const handleGenerate = async (params: GenerateParams) => {
     if (!params.text.trim()) {
@@ -43,6 +45,7 @@ export function useAudioGeneration() {
       } else if (response.status === 'FAILED') {
         handleFailedJob(response.output?.error)
       } else {
+        setCurrentJobId(response.id)
         startPolling(response.id)
       }
     } catch (error) {
@@ -58,11 +61,13 @@ export function useAudioGeneration() {
     setAudioUrl(url)
     message.success('Speech generated successfully!')
     setIsGenerating(false)
+    setCurrentJobId(null)
   }
 
   const handleFailedJob = (error?: string) => {
     message.error(`Generation failed: ${error || 'Unknown error'}`)
     setIsGenerating(false)
+    setCurrentJobId(null)
   }
 
   const startPolling = (jobId: string) => {
@@ -76,22 +81,49 @@ export function useAudioGeneration() {
         if (status.status === 'COMPLETED' && status.output?.audio_base64) {
           handleCompletedJob(status.output.audio_base64)
           subscription.unsubscribe()
+          setCurrentSubscription(null)
         } else if (status.status === 'FAILED') {
           handleFailedJob(status.output?.error)
           subscription.unsubscribe()
+          setCurrentSubscription(null)
         }
       },
       error: (error) => {
         console.error('Polling error:', error)
         message.error('Error polling job status')
         setIsGenerating(false)
+        setCurrentSubscription(null)
+        setCurrentJobId(null)
       }
     })
+    
+    setCurrentSubscription(subscription)
+  }
+
+  const handleStop = async () => {
+    if (currentJobId) {
+      try {
+        await cancelJob(currentJobId)
+        message.success('Job cancelled successfully')
+      } catch (error) {
+        console.error('Error cancelling job:', error)
+        message.error('Failed to cancel job, but polling stopped')
+      }
+      setCurrentJobId(null)
+    }
+    
+    if (currentSubscription) {
+      currentSubscription.unsubscribe()
+      setCurrentSubscription(null)
+    }
+    
+    setIsGenerating(false)
   }
 
   return {
     isGenerating,
     audioUrl,
-    handleGenerate
+    handleGenerate,
+    handleStop
   }
 }

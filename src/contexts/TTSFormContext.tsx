@@ -6,8 +6,8 @@ const DEFAULT_VALUES = {
   text: '',
   speaker: 'osim',
   useMbd: true,
-  topK: 15,
-  temperature: 0.6,
+  topK: 50,
+  temperature: 1.0,
 }
 
 const TTSFormContext = createContext<TTSFormContextType | undefined>(undefined)
