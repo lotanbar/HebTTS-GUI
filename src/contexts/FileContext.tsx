@@ -95,72 +95,129 @@ export function FileProvider({ children }: FileProviderProps) {
     const filesToProcess = files.filter(f => fileIds.includes(f.id) && f.status === FileStatus.READY)
     const formParams = getFormParams()
     
+    if (filesToProcess.length === 0) return
+
+    // Set all files to processing status
     setFiles(prev => prev.map(f => 
       fileIds.includes(f.id) && f.status === FileStatus.READY
         ? { ...f, status: FileStatus.PROCESSING }
         : f
     ))
 
-    const processPromises = filesToProcess.map(async (file) => {
-      try {
-        const response = await synthesizeSpeech({
-          text: file.content,
-          speaker: formParams.speaker,
-          top_k: formParams.top_k,
-          temperature: formParams.temperature,
-          use_mbd: formParams.use_mbd,
-          filename: file.name.replace('.txt', '')
-        })
+    // Process files with concurrent request handling
+    const processFileWithRetry = async (file: FileItem) => {
+      const maxRetries = 2
+      let attempt = 0
 
-        if (response.id) {
-          setFiles(prev => prev.map(f => 
-            f.id === file.id ? { ...f, jobId: response.id } : f
-          ))
+      while (attempt <= maxRetries) {
+        try {
+          const response = await synthesizeSpeech({
+            text: file.content,
+            speaker: formParams.speaker,
+            top_k: formParams.top_k,
+            temperature: formParams.temperature,
+            use_mbd: formParams.use_mbd,
+            filename: file.name.replace('.txt', '')
+          })
 
-          let jobComplete = false
-          while (!jobComplete) {
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            const statusResponse = await getJobStatus(response.id)
-            
-            if (statusResponse.status === 'COMPLETED') {
-              setFiles(prev => prev.map(f => 
-                f.id === file.id 
-                  ? { 
-                      ...f, 
-                      status: FileStatus.SUCCESS,
-                      audioUrl: statusResponse.output?.audio_url 
-                    }
-                  : f
-              ))
-              jobComplete = true
-            } else if (statusResponse.status === 'FAILED') {
-              setFiles(prev => prev.map(f => 
-                f.id === file.id 
-                  ? { 
-                      ...f, 
-                      status: FileStatus.ERROR,
-                      error: statusResponse.error || 'Generation failed'
-                    }
-                  : f
-              ))
-              jobComplete = true
+          if (response.id) {
+            // Update with job ID
+            setFiles(prev => prev.map(f => 
+              f.id === file.id ? { ...f, jobId: response.id } : f
+            ))
+
+            // Poll for completion
+            let jobComplete = false
+            let pollAttempts = 0
+            const maxPollAttempts = 150 // 5 minutes max (2s intervals)
+
+            while (!jobComplete && pollAttempts < maxPollAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              pollAttempts++
+
+              try {
+                const statusResponse = await getJobStatus(response.id)
+                
+                if (statusResponse.status === 'COMPLETED') {
+                  setFiles(prev => prev.map(f => 
+                    f.id === file.id 
+                      ? { 
+                          ...f, 
+                          status: FileStatus.SUCCESS,
+                          audioUrl: statusResponse.output?.audio_url 
+                        }
+                      : f
+                  ))
+                  jobComplete = true
+                  return { success: true, fileId: file.id }
+                } else if (statusResponse.status === 'FAILED') {
+                  throw new Error(statusResponse.error || 'Job failed on server')
+                }
+              } catch (pollError) {
+                if (pollAttempts >= maxPollAttempts) {
+                  throw new Error('Polling timeout - job may still be processing')
+                }
+                // Continue polling on temporary errors
+                if (pollAttempts % 10 === 0) {
+                  console.warn(`Polling attempt ${pollAttempts} failed for ${file.name}:`, pollError)
+                }
+              }
             }
+
+            if (pollAttempts >= maxPollAttempts) {
+              throw new Error('Job timeout - processing took too long')
+            }
+          } else {
+            throw new Error('No job ID returned from server')
+          }
+        } catch (error) {
+          attempt++
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          
+          if (attempt > maxRetries) {
+            // Final failure
+            setFiles(prev => prev.map(f => 
+              f.id === file.id 
+                ? { 
+                    ...f, 
+                    status: FileStatus.ERROR,
+                    error: `Failed after ${maxRetries} attempts: ${errorMessage}`
+                  }
+                : f
+            ))
+            return { success: false, fileId: file.id, error: errorMessage }
+          } else {
+            // Wait before retry (exponential backoff)
+            const waitTime = Math.pow(2, attempt) * 1000
+            console.warn(`Attempt ${attempt} failed for ${file.name}, retrying in ${waitTime}ms:`, error)
+            await new Promise(resolve => setTimeout(resolve, waitTime))
           }
         }
-      } catch (error) {
-        setFiles(prev => prev.map(f => 
-          f.id === file.id 
-            ? { 
-                ...f, 
-                status: FileStatus.ERROR,
-                error: error instanceof Error ? error.message : 'Processing failed'
-              }
-            : f
-        ))
       }
-    })
+    }
 
-    await Promise.allSettled(processPromises)
+    // Process files with batching to respect RunPod limits (max 200 concurrent)
+    const batchSize = Math.min(50, filesToProcess.length) // Conservative batch size
+    const batches = []
+    
+    for (let i = 0; i < filesToProcess.length; i += batchSize) {
+      batches.push(filesToProcess.slice(i, i + batchSize))
+    }
+
+    for (const batch of batches) {
+      const batchPromises = batch.map(file => processFileWithRetry(file))
+      const results = await Promise.allSettled(batchPromises)
+      
+      // Log batch completion
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value?.success).length
+      const failed = results.length - successful
+      console.log(`Batch completed: ${successful} successful, ${failed} failed`)
+      
+      // Small delay between batches to avoid overwhelming the API
+      if (batches.indexOf(batch) < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
   }, [files, getFormParams])
 
   const downloadFile = useCallback((id: string) => {
