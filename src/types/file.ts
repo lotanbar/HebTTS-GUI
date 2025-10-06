@@ -31,8 +31,9 @@ export interface FileContextType {
   setSelectionMode: (mode: boolean) => void
   setShowFileList: (show: boolean) => void
   processFiles: (fileIds: string[]) => Promise<void>
-  downloadFile: (id: string) => void
-  downloadAllSuccessful: () => void
+  downloadFile: (id: string) => Promise<void>
+  downloadAllSuccessful: () => Promise<void>
+  downloadSelected: () => Promise<void>
 }
 
 export interface FileProviderProps {

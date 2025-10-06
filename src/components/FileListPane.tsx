@@ -56,12 +56,14 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
     setSelectionMode, 
     removeFile, 
     downloadFile,
-    downloadAllSuccessful 
+    downloadAllSuccessful,
+    downloadSelected 
   } = useFiles()
 
   const successfulFiles = files.filter(f => f.status === FileStatus.SUCCESS)
   const readyFiles = files.filter(f => f.status === FileStatus.READY)
   const allReadySelected = readyFiles.length > 0 && readyFiles.every(f => f.isSelected)
+  const selectedSuccessfulFiles = selectedFiles.filter(f => f.status === FileStatus.SUCCESS)
 
   return (
     <Card className="bg-gray-800 border-gray-700 h-full overflow-y-scroll flex flex-col">
@@ -101,6 +103,17 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
               >
                 {allReadySelected ? 'Deselect All' : 'Select All'}
               </Button>
+              {selectedSuccessfulFiles.length > 0 && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<DownloadOutlined />}
+                  onClick={downloadSelected}
+                  className="text-xs"
+                >
+                  Download Selected ({selectedSuccessfulFiles.length})
+                </Button>
+              )}
               <Button
                 type="text"
                 size="small"
@@ -119,7 +132,7 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
               onClick={downloadAllSuccessful}
               className="text-xs"
             >
-              Download All
+              Download All ({successfulFiles.length})
             </Button>
           )}
         </div>

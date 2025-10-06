@@ -220,22 +220,86 @@ export function FileProvider({ children }: FileProviderProps) {
     }
   }, [files, getFormParams])
 
-  const downloadFile = useCallback((id: string) => {
+  const downloadFile = useCallback(async (id: string) => {
     const file = files.find(f => f.id === id)
-    if (file?.audioUrl) {
+    if (!file) {
+      console.error('File not found for download:', id)
+      return
+    }
+
+    if (!file.audioUrl) {
+      console.error('No audio URL available for file:', file.name)
+      return
+    }
+
+    try {
+      // Create filename with timestamp to avoid conflicts
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const filename = `${file.name.replace('.txt', '')}_${timestamp}.wav`
+      
+      // Use fetch to download with proper error handling
+      const response = await fetch(file.audioUrl)
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      
       const link = document.createElement('a')
-      link.href = file.audioUrl
-      link.download = `${file.name.replace('.txt', '')}.wav`
+      link.href = url
+      link.download = filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      
+      // Clean up the blob URL
+      window.URL.revokeObjectURL(url)
+      
+      console.log(`Downloaded: ${filename}`)
+    } catch (error) {
+      console.error(`Failed to download ${file.name}:`, error)
+      // You could show a toast notification here in the future
     }
   }, [files])
 
-  const downloadAllSuccessful = useCallback(() => {
+  const downloadAllSuccessful = useCallback(async () => {
     const successfulFiles = files.filter(f => f.status === FileStatus.SUCCESS && f.audioUrl)
-    successfulFiles.forEach(file => downloadFile(file.id))
+    
+    if (successfulFiles.length === 0) {
+      console.warn('No successful files available for download')
+      return
+    }
+
+    console.log(`Starting batch download of ${successfulFiles.length} files...`)
+
+    // Download files with a small delay between each to avoid overwhelming the browser
+    for (const file of successfulFiles) {
+      await downloadFile(file.id)
+      // Small delay to prevent browser issues with multiple simultaneous downloads
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    console.log('Batch download completed')
   }, [files, downloadFile])
+
+  const downloadSelected = useCallback(async () => {
+    const selectedSuccessfulFiles = selectedFiles.filter(f => f.status === FileStatus.SUCCESS && f.audioUrl)
+    
+    if (selectedSuccessfulFiles.length === 0) {
+      console.warn('No selected successful files available for download')
+      return
+    }
+
+    console.log(`Starting download of ${selectedSuccessfulFiles.length} selected files...`)
+
+    for (const file of selectedSuccessfulFiles) {
+      await downloadFile(file.id)
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    console.log('Selected files download completed')
+  }, [selectedFiles, downloadFile])
 
   const contextValue: FileContextType = {
     files,
@@ -251,7 +315,8 @@ export function FileProvider({ children }: FileProviderProps) {
     setShowFileList,
     processFiles,
     downloadFile,
-    downloadAllSuccessful
+    downloadAllSuccessful,
+    downloadSelected
   }
 
   return (
