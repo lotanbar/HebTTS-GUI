@@ -4,6 +4,7 @@ import { FileStatus } from '../types/file'
 import { validateHebrewText, readFileAsText } from '../utils/hebrewValidation'
 import { synthesizeSpeech, getJobStatus } from '../services/runpodAPI'
 import { useTTSForm } from './TTSFormContext'
+import { base64ToBlob } from '../utils/audio'
 
 const FileContext = createContext<FileContextType | undefined>(undefined)
 
@@ -69,6 +70,14 @@ export function FileProvider({ children }: FileProviderProps) {
     setFiles(prev => prev.filter(f => f.id !== id))
   }, [])
 
+  const stopFile = useCallback((id: string) => {
+    setFiles(prev => prev.map(f => 
+      f.id === id && (f.status === FileStatus.PROCESSING || f.status === FileStatus.LOADING)
+        ? { ...f, status: FileStatus.READY, jobId: undefined, error: undefined }
+        : f
+    ))
+  }, [])
+
   const toggleFileSelection = useCallback((id: string) => {
     setFiles(prev => prev.map(f => 
       f.id === id && f.status === FileStatus.READY 
@@ -90,6 +99,17 @@ export function FileProvider({ children }: FileProviderProps) {
       isSelected: f.status === FileStatus.READY ? false : f.isSelected 
     })))
   }, [])
+
+  const removeAllFiles = useCallback(() => {
+    setFiles([])
+    setIsSelectionMode(false)
+  }, [])
+
+  const [allExpanded, setAllExpanded] = useState(false)
+  
+  const toggleExpandAll = useCallback(() => {
+    setAllExpanded(!allExpanded)
+  }, [allExpanded])
 
   const processFiles = useCallback(async (fileIds: string[]) => {
     const filesToProcess = files.filter(f => fileIds.includes(f.id) && f.status === FileStatus.READY)
@@ -139,12 +159,19 @@ export function FileProvider({ children }: FileProviderProps) {
                 const statusResponse = await getJobStatus(response.id)
                 
                 if (statusResponse.status === 'COMPLETED') {
+                  let audioUrl: string | undefined = undefined
+                  
+                  if (statusResponse.output?.audio_base64) {
+                    const audioBlob = base64ToBlob(statusResponse.output.audio_base64, 'audio/wav')
+                    audioUrl = URL.createObjectURL(audioBlob)
+                  }
+                  
                   setFiles(prev => prev.map(f => 
                     f.id === file.id 
                       ? { 
                           ...f, 
                           status: FileStatus.SUCCESS,
-                          audioUrl: statusResponse.output?.audio_url 
+                          audioUrl 
                         }
                       : f
                   ))
@@ -306,11 +333,15 @@ export function FileProvider({ children }: FileProviderProps) {
     selectedFiles,
     isSelectionMode,
     showFileList,
+    allExpanded,
     addFiles,
     removeFile,
+    stopFile,
+    removeAllFiles,
     toggleFileSelection,
     selectAllFiles,
     clearSelection,
+    toggleExpandAll,
     setSelectionMode: setIsSelectionMode,
     setShowFileList,
     processFiles,

@@ -2,6 +2,7 @@ import { Card, Button, Typography, Space } from 'antd'
 import { SoundOutlined, LoadingOutlined, StopOutlined, FileTextOutlined } from '@ant-design/icons'
 import { useFiles } from '../contexts/FileContext'
 import { FileStatus } from '../types/file'
+import { validateHebrewText } from '../utils/hebrewValidation'
 
 const { Text } = Typography
 
@@ -10,9 +11,10 @@ interface GenerationCardProps {
   isGenerating: boolean
   onGenerate: () => void
   onStop: () => void
+  onToggleFileList: (show: boolean) => void
 }
 
-export function GenerationCard({ text, isGenerating, onGenerate, onStop }: GenerationCardProps) {
+export function GenerationCard({ text, isGenerating, onGenerate, onStop, onToggleFileList }: GenerationCardProps) {
   const { 
     files, 
     selectedFiles, 
@@ -28,6 +30,10 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
   const hasReadyFiles = readyFiles.length > 0
   const hasSelectedFiles = selectedFiles.length > 0
   const isProcessingFiles = processingFiles.length > 0
+  
+  // Validate input text
+  const textValidation = text.trim() ? validateHebrewText(text) : null
+  const isTextValid = textValidation?.isValid || false
 
   const handleGenerateAll = () => {
     if (hasReadyFiles) {
@@ -47,7 +53,7 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
   const renderGenerateButtons = () => {
     if (isSelectionMode) {
       return (
-        <Space size="middle">
+        <Space size="small">
           <Button
             type="primary"
             size="large"
@@ -55,7 +61,7 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
             onClick={handleGenerateSelected}
             disabled={!hasSelectedFiles || isProcessingFiles}
             loading={isProcessingFiles}
-            className="px-6 py-6 h-auto text-lg font-medium"
+            className="px-4 py-6 h-auto text-base font-medium"
           >
             {isProcessingFiles ? 'Processing...' : `Generate Selected (${selectedFiles.length})`}
           </Button>
@@ -63,9 +69,18 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
             type="default"
             size="large"
             onClick={() => setSelectionMode(false)}
-            className="px-6 py-6 h-auto text-lg font-medium"
+            className="px-4 py-6 h-auto text-base font-medium"
           >
             Cancel
+          </Button>
+          <Button
+            type="link"
+            size="large"
+            icon={<FileTextOutlined />}
+            onClick={() => onToggleFileList(!showFileList)}
+            className="text-blue-400 hover:text-blue-300 px-3 py-6 h-auto text-sm"
+          >
+            {showFileList ? 'Hide' : 'Show'} Files ({files.length})
           </Button>
         </Space>
       )
@@ -73,45 +88,52 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
 
     if (hasReadyFiles) {
       return (
-        <Space size="middle" direction="vertical">
-          <Space size="middle">
-            <Button
-              type="primary"
-              size="large"
-              icon={isProcessingFiles ? <LoadingOutlined /> : <SoundOutlined />}
-              onClick={handleGenerateAll}
-              disabled={isProcessingFiles}
-              loading={isProcessingFiles}
-              className="px-6 py-6 h-auto text-lg font-medium"
-            >
-              {isProcessingFiles ? `Processing Files (${processingFiles.length})...` : `Generate All Files (${readyFiles.length})`}
-            </Button>
-            <Button
-              type="default"
-              size="large"
-              icon={isGenerating ? <LoadingOutlined /> : <SoundOutlined />}
-              onClick={onGenerate}
-              disabled={!text.trim() || isGenerating || isProcessingFiles}
-              loading={isGenerating}
-              className="px-6 py-6 h-auto text-lg font-medium"
-            >
-              {isGenerating ? 'Generating...' : 'Generate Text Only'}
-            </Button>
-          </Space>
+        <Space size="small">
+          <Button
+            type="primary"
+            size="large"
+            icon={isProcessingFiles ? <LoadingOutlined /> : <SoundOutlined />}
+            onClick={handleGenerateAll}
+            disabled={isProcessingFiles}
+            loading={isProcessingFiles}
+            className="px-4 py-6 h-auto text-base font-medium"
+          >
+            {isProcessingFiles ? `Processing (${processingFiles.length})...` : `Generate All (${readyFiles.length})`}
+          </Button>
+          <Button
+            type="default"
+            size="large"
+            icon={isGenerating ? <LoadingOutlined /> : <SoundOutlined />}
+            onClick={onGenerate}
+            disabled={!text.trim() || !isTextValid || isGenerating || isProcessingFiles}
+            loading={isGenerating}
+            className="px-4 py-6 h-auto text-base font-medium"
+          >
+            {isGenerating ? 'Generating...' : 'Generate Text'}
+          </Button>
+          <Button
+            type="link"
+            size="large"
+            icon={<FileTextOutlined />}
+            onClick={() => onToggleFileList(!showFileList)}
+            className="text-blue-400 hover:text-blue-300 px-3 py-6 h-auto text-sm"
+          >
+            {showFileList ? 'Hide' : 'Show'} Files ({files.length})
+          </Button>
         </Space>
       )
     }
 
     return (
-      <Space size="middle">
+      <Space size="small">
         <Button
           type="primary"
           size="large"
           icon={isGenerating ? <LoadingOutlined /> : <SoundOutlined />}
           onClick={onGenerate}
-          disabled={!text.trim() || isGenerating}
+          disabled={!text.trim() || !isTextValid || isGenerating}
           loading={isGenerating}
-          className="px-8 py-6 h-auto text-lg font-medium"
+          className="px-6 py-6 h-auto text-lg font-medium"
         >
           {isGenerating ? 'Generating...' : 'Generate Speech'}
         </Button>
@@ -122,13 +144,23 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
           icon={<StopOutlined />}
           onClick={onStop}
           disabled={!isGenerating}
-          className={`px-6 py-6 h-auto text-lg font-medium ${
+          className={`px-4 py-6 h-auto text-base font-medium ${
             isGenerating 
               ? 'bg-red-600 border-red-500 text-white hover:bg-red-700 hover:border-red-600' 
               : 'bg-gray-600 border-gray-500 text-gray-400'
           }`}
         >
           Stop
+        </Button>
+        
+        <Button
+          type="link"
+          size="large"
+          icon={<FileTextOutlined />}
+          onClick={() => onToggleFileList(!showFileList)}
+          className="text-blue-400 hover:text-blue-300 px-3 py-6 h-auto text-sm"
+        >
+          {showFileList ? 'Hide' : 'Show'} Files ({files.length})
         </Button>
       </Space>
     )
@@ -137,21 +169,6 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
   return (
     <Card className="bg-gray-800 border-gray-700">
       <div className="text-center">
-        <div className="flex justify-between items-center mb-4">
-          <div></div>
-          {files.length > 0 && (
-            <Button
-              type="link"
-              size="small"
-              icon={<FileTextOutlined />}
-              onClick={() => setShowFileList(!showFileList)}
-              className="text-blue-400 hover:text-blue-300"
-            >
-              {showFileList ? 'Hide' : 'Show'} Files ({files.length})
-            </Button>
-          )}
-        </div>
-        
         {renderGenerateButtons()}
         
         {isProcessingFiles && (
@@ -168,7 +185,15 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
         {!text.trim() && !hasReadyFiles && !isGenerating && !isProcessingFiles && (
           <div className="mt-3">
             <Text type="secondary" className="text-sm">
-              Enter text above or attach files to enable generation
+              Enter Hebrew text above or attach files to enable generation
+            </Text>
+          </div>
+        )}
+        
+        {text.trim() && !isTextValid && !isGenerating && !isProcessingFiles && (
+          <div className="mt-3">
+            <Text type="secondary" className="text-sm text-red-400">
+              Text validation failed. Please enter valid Hebrew text to enable generation.
             </Text>
           </div>
         )}

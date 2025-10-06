@@ -21,6 +21,20 @@ function App() {
 
   const showSidePane = showInfoPane || (showFileList && !isMobile)
 
+  const handleToggleFileList = (show: boolean) => {
+    setShowFileList(show)
+    if (show && showInfoPane) {
+      setShowInfoPane(false)
+    }
+  }
+
+  const handleToggleInfoPane = () => {
+    setShowInfoPane(!showInfoPane)
+    if (!showInfoPane && showFileList) {
+      setShowFileList(false)
+    }
+  }
+
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 1024)
@@ -49,7 +63,7 @@ function App() {
               ? showInfoPane ? 'hidden' : 'w-full' 
               : (showInfoPane || (showFileList && !isMobile)) ? 'w-1/2 pr-3' : 'w-full max-w-4xl mx-auto'
           } flex flex-col`}>
-            <Header onInfoClick={() => setShowInfoPane(!showInfoPane)} />
+            <Header onInfoClick={handleToggleInfoPane} />
             
             <div className="flex-1 overflow-y-auto">
               <div className="space-y-6">
@@ -74,6 +88,7 @@ function App() {
                   isGenerating={isGenerating}
                   onGenerate={() => handleGenerate(ttsForm.getFormParams())}
                   onStop={handleStop}
+                  onToggleFileList={handleToggleFileList}
                 />
 
                 {audioUrl && (

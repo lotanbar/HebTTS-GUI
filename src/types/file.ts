@@ -23,11 +23,15 @@ export interface FileContextType {
   selectedFiles: FileItem[]
   isSelectionMode: boolean
   showFileList: boolean
+  allExpanded: boolean
   addFiles: (files: FileList) => Promise<void>
   removeFile: (id: string) => void
+  stopFile: (id: string) => void
+  removeAllFiles: () => void
   toggleFileSelection: (id: string) => void
   selectAllFiles: () => void
   clearSelection: () => void
+  toggleExpandAll: () => void
   setSelectionMode: (mode: boolean) => void
   setShowFileList: (show: boolean) => void
   processFiles: (fileIds: string[]) => Promise<void>

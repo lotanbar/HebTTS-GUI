@@ -1,7 +1,7 @@
 import { Typography, Button } from 'antd'
 import { SoundOutlined, InfoCircleOutlined } from '@ant-design/icons'
 
-const { Title, Text } = Typography
+const { Title } = Typography
 
 interface HeaderProps {
   onInfoClick: () => void
@@ -21,13 +21,10 @@ export function Header({ onInfoClick }: HeaderProps) {
         </Button>
       </div>
       
-      <Title level={1} className="text-white mb-2">
+      <Title level={1} className="text-white">
         <SoundOutlined className="mr-3" />
         HebTTS GUI
       </Title>
-      <Text type="secondary" className="text-lg">
-        Hebrew Text-to-Speech Generator
-      </Text>
     </div>
   )
 }
