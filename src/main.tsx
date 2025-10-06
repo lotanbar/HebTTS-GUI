@@ -2,13 +2,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { TTSFormProvider } from './contexts/TTSFormContext'
+import { FileProvider } from './contexts/FileContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <TTSFormProvider>
-      <App />
-    </TTSFormProvider>
+    <FileProvider>
+      <TTSFormProvider>
+        <App />
+      </TTSFormProvider>
+    </FileProvider>
   </React.StrictMode>,
 )
 
