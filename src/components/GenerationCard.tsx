@@ -24,8 +24,10 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
   } = useFiles()
   
   const readyFiles = files.filter(f => f.status === FileStatus.READY)
+  const processingFiles = files.filter(f => f.status === FileStatus.PROCESSING)
   const hasReadyFiles = readyFiles.length > 0
   const hasSelectedFiles = selectedFiles.length > 0
+  const isProcessingFiles = processingFiles.length > 0
 
   const handleGenerateAll = () => {
     if (hasReadyFiles) {
@@ -49,12 +51,13 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
           <Button
             type="primary"
             size="large"
-            icon={<SoundOutlined />}
+            icon={isProcessingFiles ? <LoadingOutlined /> : <SoundOutlined />}
             onClick={handleGenerateSelected}
-            disabled={!hasSelectedFiles}
+            disabled={!hasSelectedFiles || isProcessingFiles}
+            loading={isProcessingFiles}
             className="px-6 py-6 h-auto text-lg font-medium"
           >
-            Generate Selected ({selectedFiles.length})
+            {isProcessingFiles ? 'Processing...' : `Generate Selected (${selectedFiles.length})`}
           </Button>
           <Button
             type="default"
@@ -75,21 +78,24 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
             <Button
               type="primary"
               size="large"
-              icon={<SoundOutlined />}
+              icon={isProcessingFiles ? <LoadingOutlined /> : <SoundOutlined />}
               onClick={handleGenerateAll}
+              disabled={isProcessingFiles}
+              loading={isProcessingFiles}
               className="px-6 py-6 h-auto text-lg font-medium"
             >
-              Generate All Files ({readyFiles.length})
+              {isProcessingFiles ? `Processing Files (${processingFiles.length})...` : `Generate All Files (${readyFiles.length})`}
             </Button>
             <Button
               type="default"
               size="large"
-              icon={<SoundOutlined />}
+              icon={isGenerating ? <LoadingOutlined /> : <SoundOutlined />}
               onClick={onGenerate}
-              disabled={!text.trim()}
+              disabled={!text.trim() || isGenerating || isProcessingFiles}
+              loading={isGenerating}
               className="px-6 py-6 h-auto text-lg font-medium"
             >
-              Generate Text Only
+              {isGenerating ? 'Generating...' : 'Generate Text Only'}
             </Button>
           </Space>
         </Space>
@@ -148,7 +154,18 @@ export function GenerationCard({ text, isGenerating, onGenerate, onStop }: Gener
         
         {renderGenerateButtons()}
         
-        {!text.trim() && !hasReadyFiles && !isGenerating && (
+        {isProcessingFiles && (
+          <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600 rounded">
+            <Text className="text-yellow-300 text-sm font-medium block mb-1">
+              🎵 Processing {processingFiles.length} file{processingFiles.length > 1 ? 's' : ''}...
+            </Text>
+            <Text className="text-yellow-400 text-xs">
+              Files are being processed concurrently. This may take several minutes.
+            </Text>
+          </div>
+        )}
+        
+        {!text.trim() && !hasReadyFiles && !isGenerating && !isProcessingFiles && (
           <div className="mt-3">
             <Text type="secondary" className="text-sm">
               Enter text above or attach files to enable generation

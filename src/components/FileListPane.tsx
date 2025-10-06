@@ -198,11 +198,28 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
               {file.status === FileStatus.PROCESSING && (
                 <div className="mt-3">
                   <Progress
-                    percent={75}
+                    percent={100}
                     size="small"
                     status="active"
                     showInfo={false}
                   />
+                  <Text className="text-xs text-yellow-300 mt-1 block">
+                    {file.jobId ? 'Processing on server...' : 'Submitting job...'}
+                  </Text>
+                </div>
+              )}
+              
+              {file.status === FileStatus.LOADING && (
+                <div className="mt-3">
+                  <Progress
+                    percent={100}
+                    size="small"
+                    status="active"
+                    showInfo={false}
+                  />
+                  <Text className="text-xs text-blue-300 mt-1 block">
+                    Reading and validating file...
+                  </Text>
                 </div>
               )}
 
@@ -231,20 +248,34 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
                   className="text-xs"
                 >
                   {file.error && (
-                    <Text className="text-red-300 text-xs">
-                      {file.error}
-                    </Text>
+                    <div className="bg-red-900/20 border border-red-700 rounded p-2">
+                      <Text className="text-red-300 text-xs font-medium block mb-1">
+                        Error:
+                      </Text>
+                      <Text className="text-red-200 text-xs">
+                        {file.error}
+                      </Text>
+                      <Text className="text-red-400 text-xs mt-2 block">
+                        You can try removing and re-adding the file, or check if the file contains only Hebrew text.
+                      </Text>
+                    </div>
                   )}
                   {file.status === FileStatus.SUCCESS && file.audioUrl && (
-                    <div className="space-y-2">
+                    <div className="bg-green-900/20 border border-green-700 rounded p-3">
+                      <Text className="text-green-300 text-xs font-medium block mb-2">
+                        ✓ Generation completed successfully
+                      </Text>
                       <audio
                         controls
-                        className="w-full h-8"
+                        className="w-full h-8 mb-2"
                         src={file.audioUrl}
                       >
                         Your browser does not support the audio element.
                       </audio>
-                      <div className="flex justify-end">
+                      <div className="flex justify-between items-center">
+                        <Text className="text-green-400 text-xs">
+                          Audio ready for download
+                        </Text>
                         <Button
                           type="link"
                           size="small"
@@ -258,19 +289,31 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
                     </div>
                   )}
                   {file.status === FileStatus.READY && (
-                    <Text className="text-green-300 text-xs">
-                      File is ready for processing
-                    </Text>
+                    <div className="bg-green-900/10 border border-green-600 rounded p-2">
+                      <Text className="text-green-300 text-xs">
+                        ✓ File validation passed - Ready for speech generation
+                      </Text>
+                    </div>
                   )}
                   {file.status === FileStatus.LOADING && (
-                    <Text className="text-blue-300 text-xs">
-                      Reading and validating file content...
-                    </Text>
+                    <div className="bg-blue-900/20 border border-blue-600 rounded p-2">
+                      <Text className="text-blue-300 text-xs">
+                        📖 Reading file content and validating Hebrew text...
+                      </Text>
+                    </div>
                   )}
                   {file.status === FileStatus.PROCESSING && (
-                    <Text className="text-yellow-300 text-xs">
-                      Generating speech audio...
-                    </Text>
+                    <div className="bg-yellow-900/20 border border-yellow-600 rounded p-2">
+                      <Text className="text-yellow-300 text-xs font-medium block mb-1">
+                        🎵 Generating speech audio...
+                      </Text>
+                      <Text className="text-yellow-400 text-xs">
+                        {file.jobId ? `Job ID: ${file.jobId}` : 'Submitting to server...'}
+                      </Text>
+                      <Text className="text-yellow-500 text-xs mt-1 block">
+                        This may take a few minutes depending on text length
+                      </Text>
+                    </div>
                   )}
                 </Panel>
               </Collapse>
