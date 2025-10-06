@@ -71,17 +71,24 @@ export function FileProvider({ children }: FileProviderProps) {
 
   const toggleFileSelection = useCallback((id: string) => {
     setFiles(prev => prev.map(f => 
-      f.id === id ? { ...f, isSelected: !f.isSelected } : f
+      f.id === id && f.status === FileStatus.READY 
+        ? { ...f, isSelected: !f.isSelected } 
+        : f
     ))
   }, [])
 
   const selectAllFiles = useCallback(() => {
-    setFiles(prev => prev.map(f => ({ ...f, isSelected: true })))
+    setFiles(prev => prev.map(f => ({ 
+      ...f, 
+      isSelected: f.status === FileStatus.READY ? true : f.isSelected 
+    })))
   }, [])
 
   const clearSelection = useCallback(() => {
-    setFiles(prev => prev.map(f => ({ ...f, isSelected: false })))
-    setIsSelectionMode(false)
+    setFiles(prev => prev.map(f => ({ 
+      ...f, 
+      isSelected: f.status === FileStatus.READY ? false : f.isSelected 
+    })))
   }, [])
 
   const processFiles = useCallback(async (fileIds: string[]) => {

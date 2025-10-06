@@ -1,5 +1,5 @@
 import { Card, Typography, Button, Collapse, Checkbox, Progress } from 'antd'
-import { ArrowLeftOutlined, CloseOutlined, FileTextOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, LoadingOutlined, CaretRightOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CloseOutlined, FileTextOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, LoadingOutlined, CaretRightOutlined, CheckSquareOutlined, BorderOutlined } from '@ant-design/icons'
 import { useFiles } from '../contexts/FileContext'
 import { FileStatus } from '../types/file'
 
@@ -46,9 +46,22 @@ const getStatusText = (status: FileStatus) => {
 }
 
 export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
-  const { files, isSelectionMode, toggleFileSelection, removeFile, downloadFile } = useFiles()
+  const { 
+    files, 
+    selectedFiles, 
+    isSelectionMode, 
+    toggleFileSelection, 
+    selectAllFiles, 
+    clearSelection, 
+    setSelectionMode, 
+    removeFile, 
+    downloadFile,
+    downloadAllSuccessful 
+  } = useFiles()
 
   const successfulFiles = files.filter(f => f.status === FileStatus.SUCCESS)
+  const readyFiles = files.filter(f => f.status === FileStatus.READY)
+  const allReadySelected = readyFiles.length > 0 && readyFiles.every(f => f.isSelected)
 
   return (
     <Card className="bg-gray-800 border-gray-700 h-full overflow-y-scroll flex flex-col">
@@ -62,19 +75,54 @@ export function FileListPane({ onClose, isMobile }: FileListPaneProps) {
             size="large"
           />
           <Title level={4} className="text-white mb-0">
-            Attached Files ({files.length})
+            {isSelectionMode ? `${selectedFiles.length} Selected` : `Attached Files (${files.length})`}
           </Title>
         </div>
-        {successfulFiles.length > 0 && (
-          <Button
-            type="primary"
-            size="small"
-            icon={<DownloadOutlined />}
-            className="text-xs"
-          >
-            Download All
-          </Button>
-        )}
+        <div className="flex items-center space-x-2">
+          {readyFiles.length > 0 && !isSelectionMode && (
+            <Button
+              type="text"
+              size="small"
+              icon={<CheckSquareOutlined />}
+              onClick={() => setSelectionMode(true)}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              Select
+            </Button>
+          )}
+          {isSelectionMode && (
+            <>
+              <Button
+                type="text"
+                size="small"
+                icon={allReadySelected ? <BorderOutlined /> : <CheckSquareOutlined />}
+                onClick={allReadySelected ? clearSelection : selectAllFiles}
+                className="text-blue-400 hover:text-blue-300"
+              >
+                {allReadySelected ? 'Deselect All' : 'Select All'}
+              </Button>
+              <Button
+                type="text"
+                size="small"
+                onClick={() => setSelectionMode(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+          {successfulFiles.length > 0 && !isSelectionMode && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<DownloadOutlined />}
+              onClick={downloadAllSuccessful}
+              className="text-xs"
+            >
+              Download All
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2 text-white flex-1 overflow-y-auto pr-2">
